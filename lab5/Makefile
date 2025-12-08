@@ -22,6 +22,7 @@ LDFLAGS = -z max-page-size=4096 --no-warn-rwx-segments
 SRCS = \
 	kernel/entry.S \
 	kernel/kernelvec.S \
+	kernel/swtch.S \
 	kernel/console.c \
 	kernel/printf.c \
 	kernel/uart.c \
@@ -29,19 +30,21 @@ SRCS = \
 	kernel/vmm.c \
 	kernel/test.c \
 	kernel/trap.c \
+	kernel/proc.c \
 	kernel/start.c
 
 # 定义 build 目录
 BUILD_DIR = build
 
 # 目标文件列表 (带 build/ 前缀)
+# 将 .c 替换为 .o，将 .S 替换为 .o
 OBJS = $(SRCS:%.c=$(BUILD_DIR)/%.o)
 OBJS := $(OBJS:%.S=$(BUILD_DIR)/%.o)
 
 # 默认目标
 all: $(BUILD_DIR)/kernel.elf
 
-# 创建 build 目录
+# 创建 build 目录结构
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 	mkdir -p $(BUILD_DIR)/kernel
@@ -57,14 +60,17 @@ $(BUILD_DIR)/%.o: %.S | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 # 链接生成 kernel.elf 到 build 目录
+# --- [关键修改] ---
+# 这里将 $^ 改为了 $(OBJS)
+# 因为 $^ 会包含 kernel/kernel.ld，导致链接器报错说脚本出现了两次
 $(BUILD_DIR)/kernel.elf: $(OBJS) kernel/kernel.ld | $(BUILD_DIR)
-	$(LD) $(LDFLAGS) -T kernel/kernel.ld -o $@ $^
+	$(LD) $(LDFLAGS) -T kernel/kernel.ld -o $@ $(OBJS)
 
-# 运行 QEMU (使用 build 目录下的 elf 文件)
+# 运行 QEMU
 qemu: $(BUILD_DIR)/kernel.elf
 	$(QEMU) -machine virt -bios default -kernel $< -m 128M -smp 1 -nographic
 
-# 调试模式 (使用 build 目录下的 elf 文件)
+# 调试模式
 qemu-gdb: $(BUILD_DIR)/kernel.elf
 	$(QEMU) -machine virt -bios default -kernel $< -m 128M -smp 1 -nographic -S -gdb tcp::1234
 
