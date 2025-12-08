@@ -1,5 +1,6 @@
 // test.c - 测试用例实现
 #include "test.h"
+#include <stddef.h>
 
 void test_physical_memory() {
     printf("\n--- Test: Physical Memory Management ---\n");
@@ -144,12 +145,105 @@ void test_virtual_memory() {
     printf("✓ Device access still works\n");
 }
 
+void test_exception_handling() {
+    printf("\n--- Test: Exception Handling ---\n");
+    
+    // 1. NULL指针处理测试
+    printf("Testing NULL pointer handling...\n");
+    free_page(NULL);  // 应安全退出无崩溃
+    printf("✓ free_page(NULL) handled safely\n");
+    
+    pagetable_t pt = create_pagetable();
+    if (pt == 0) {
+        printf("✗ Failed to create page table for exception tests\n");
+        return;
+    }
+    uint64 pa = (uint64)alloc_page();
+    if (pa == 0) {
+        printf("✗ Failed to allocate page for exception tests\n");
+        destroy_pagetable(pt);
+        return;
+    }
+    
+    int result = map_page(pt, 0, pa, PTE_R | PTE_W);  // 映射NULL地址
+    if (result != 0) {
+        printf("✓ map_page with NULL VA detected correctly\n");
+    } else {
+        printf("✗ map_page with NULL VA not detected\n");
+    }
+    
+    // 2. 地址不对齐测试
+    printf("\nTesting unaligned addresses...\n");
+    result = map_page(pt, 0x1000001, pa, PTE_R | PTE_W);  // 末位非0，未对齐
+    if (result != 0) {
+        printf("✓ Unaligned VA detected correctly\n");
+    } else {
+        printf("✗ Unaligned VA not detected\n");
+    }
+    
+    // 3. 重复映射测试
+    printf("\nTesting duplicate mapping...\n");
+    uint64 va = 0x3000000;
+    result = map_page(pt, va, pa, PTE_R | PTE_W);  // 首次映射
+    if (result != 0) {
+        printf("✗ Initial mapping failed for duplicate test\n");
+    } else {
+        // 尝试重复映射同一虚拟地址
+        result = map_page(pt, va, pa, PTE_R);
+        if (result != 0) {
+            printf("✓ Duplicate mapping detected correctly\n");
+        } else {
+            printf("✗ Duplicate mapping not detected\n");
+        }
+    }
+    
+    // 4. 内存耗尽测试
+    printf("\nTesting memory exhaustion...\n");
+    int alloc_count = 0;
+    void* last_page = NULL;
+    // 持续分配直到内存耗尽
+    while (1) {
+        void* p = alloc_page();
+        if (p == NULL) break;
+        last_page = p;
+        alloc_count++;
+    }
+    printf("Allocated %d pages before exhaustion\n", alloc_count);
+    
+    // 验证内存耗尽后返回NULL
+    void* p = alloc_page();
+    if (p == NULL) {
+        printf("✓ alloc_page returns NULL when out of memory\n");
+    } else {
+        printf("✗ alloc_page did not return NULL when out of memory\n");
+        free_page(p);  // 清理意外分配的页
+    }
+    
+    // 释放最后分配的页，验证恢复功能
+    if (last_page != NULL) {
+        free_page(last_page);
+        p = alloc_page();
+        if (p != NULL) {
+            printf("✓ Memory allocation recovered after free\n");
+            free_page(p);
+        } else {
+            printf("✗ Memory allocation did not recover after free\n");
+        }
+    }
+    
+    // 清理资源
+    free_page((void*)pa);
+    destroy_pagetable(pt);
+    printf("✓ Exception handling tests completed\n");
+}
+
 void run_all_tests() {
     printf_color(36, "=== STARTING PHYSICAL MEMORY AND PAGE TABLE TESTS ===\n");
     
     test_physical_memory();
     test_pagetable();
     test_virtual_memory();
+    test_exception_handling();
     
     printf_color(36, "=== ALL TESTS COMPLETED ===\n");
 }

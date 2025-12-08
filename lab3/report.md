@@ -166,7 +166,6 @@ static inline void w_satp(uint64 x) {
 这些原则是构建安全操作系统的基础，即使在教学实现中也不能忽视。
 
 ## 测试验证部分
-![alt text](image.png)
 ### 功能测试结果
 ✅ **物理内存分配器**：
 - 成功分配32256个物理页
@@ -200,6 +199,9 @@ static inline void w_satp(uint64 x) {
 
 ✅ **内存耗尽**：
 - 模拟物理内存耗尽，`alloc_page()`返回NULL，各层调用正确处理此情况
+
+### 运行结果
+![alt text](image-1.png)
 
 ## 思考题
 
