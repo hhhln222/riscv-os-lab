@@ -76,15 +76,33 @@ riscv64-unknown-elf-gdb kernel.elf
 ## 📂 目录结构 (新增部分)
 ```
 .
-├── kernel/
-│   ├── kernelvec.S          # [新增] 汇编中断入口 (Context Save/Restore)
-│   ├── trap.c               # [新增] C语言中断分发与处理逻辑
-│   ├── start.c              # [修改] 增加中断初始化流程
-│   ├── printf.c             # [修改] 支持 64位整数打印 (%lu)
-│   └── include/
-│       ├── trap.h           # [新增] 中断接口定义
-│       ├── sbi.h            # [新增] SBI 调用接口 (Set Timer)
-│       └── riscv.h          # [修改] 补充 CSR 寄存器定义
+├── Makefile                 # 构建脚本 (Build script)
+├── README.md                # 项目说明文档
+├── report.md                # 综合实验报告
+├── include/                 # 头文件目录 (Header files)
+│   ├── types.h              # 基础数据类型定义
+│   ├── riscv.h              # RISC-V 架构寄存器与汇编指令封装
+│   ├── sbi.h                # [新增] SBI 接口 (OpenSBI 调用封装)
+│   ├── stdarg.h             # 可变参数处理宏
+│   ├── pmm.h                # 物理内存管理接口
+│   ├── vmm.h                # 虚拟内存/页表管理接口
+│   ├── trap.h               # [新增] 中断与异常处理接口
+│   ├── uart.h               # 串口驱动接口
+│   ├── console.h            # 控制台输出接口
+│   ├── printf.h             # 格式化输出接口
+│   └── test.h               # 测试用例接口
+└── kernel/                  # 内核源码目录 (Source files)
+    ├── kernel.ld            # 链接脚本 (Linker script)
+    ├── entry.S              # 汇编启动入口 (设置栈指针)
+    ├── start.c              # C语言内核入口 (初始化流程)
+    ├── kernelvec.S          # [新增] 汇编中断入口 (上下文保存/恢复)
+    ├── trap.c               # [新增] C语言中断分发与异常处理
+    ├── pmm.c                # 物理内存分配器实现
+    ├── vmm.c                # 虚拟内存与页表实现
+    ├── uart.c               # UART 硬件驱动
+    ├── console.c            # 控制台逻辑与 ANSI 扩展
+    ├── printf.c             # 格式化输出实现 (%d, %x, %lu 等)
+    └── test.c               # 自动化测试套件
 ```
 
 ## ✨ 功能进度
